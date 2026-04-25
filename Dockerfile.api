@@ -1,0 +1,23 @@
+FROM node:20-alpine
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml ./
+RUN corepack enable && pnpm install --frozen-lockfile
+
+COPY . .
+
+WORKDIR /app/apps/api
+RUN pnpm prisma generate
+RUN pnpm build
+
+FROM node:20-alpine
+WORKDIR /app
+
+COPY --from=0 /app/node_modules ./node_modules
+COPY --from=0 /app/apps/api ./apps/api
+COPY --from=0 /app/packages ./packages
+
+WORKDIR /app/apps/api
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]
