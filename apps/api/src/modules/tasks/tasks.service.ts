@@ -3,8 +3,9 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { TaskStatus, Priority } from './dto/task.dto';
+import { InjectModel } from '@nestjs/sequelize';
+import { Task, TimeLog, Comment, TaskHistory, User } from '../../database/models';
+import { TaskStatus, Priority, CreateTaskDto, UpdateTaskDto, CreateTimeLogDto, CreateCommentDto } from './dto/task.dto';
 
 export const PRIORITY_WEIGHTS: Record<Priority, number> = {
   [Priority.HIGHEST]: 5,
@@ -34,37 +35,41 @@ export function isValidStatusTransition(
     return Object.values(TaskStatus).includes(previousStatus);
   }
 
-  const allowedTransitions = STATUS_TRANSITIONS[currentStatus];
+  const allowedTransitions = STATUS_TRANSITIONS[currentStatus] ?? [];
   return allowedTransitions.includes(newStatus);
 }
 
 @Injectable()
 export class TasksService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectModel(Task) private readonly taskModel: typeof Task,
+    @InjectModel(TimeLog) private readonly timeLogModel: typeof TimeLog,
+    @InjectModel(Comment) private readonly commentModel: typeof Comment,
+    @InjectModel(TaskHistory) private readonly taskHistoryModel: typeof TaskHistory,
+  ) {}
 
-  async findAll(userId?: string) {
-    const where = userId ? { userId } : {};
-    const tasks = await this.prisma.task.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
+  async findAll(user_id?: string) {
+    const tasks = await this.taskModel.findAll({
+      where: user_id ? { user_id } : {},
+      order: [['created_at', 'DESC']],
+      include: [{
+        model: User,
+        attributes: ['id', 'name', 'email'],
+      }],
     });
     return tasks.map(this.mapToTask);
   }
 
   async findOne(id: string) {
-    const task = await this.prisma.task.findUnique({
-      where: { id },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-        timeLogs: { orderBy: { createdAt: 'desc' } },
-        comments: {
-          include: { user: { select: { id: true, name: true } } },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
+    const task = await this.taskModel.findByPk(id, {
+      include: [
+        { model: User, attributes: ['id', 'name', 'email'] },
+        { model: TimeLog, order: [['created_at', 'DESC']] },
+        {
+          model: Comment,
+          include: [{ model: User, attributes: ['id', 'name'] }],
+          order: [['created_at', 'DESC']] },
+      ],
     });
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -72,32 +77,30 @@ export class TasksService {
     return this.mapToTask(task);
   }
 
-  async create(dto: any) {
-    const task = await this.prisma.task.create({
-      data: {
-        userId: dto.userId,
-        ticketNumber: dto.ticketNumber,
-        description: dto.description,
-        jiraLink: dto.jiraLink,
-        priority: dto.priority,
-        productionLiveDate: dto.productionLiveDate ? new Date(dto.productionLiveDate) : undefined,
-      },
+  async create(dto: CreateTaskDto) {
+    const task = await this.taskModel.create({
+      user_id: dto.user_id,
+      ticket_number: dto.ticket_number,
+      description: dto.description,
+      jira_link: dto.jira_link,
+      priority: dto.priority,
+      production_live_date: dto.production_live_date ? new Date(dto.production_live_date) : undefined,
     });
     return this.mapToTask(task);
   }
 
   async update(
     id: string,
-    dto: any,
+    dto: UpdateTaskDto,
     previousStatus?: TaskStatus,
   ) {
-    const task = await this.prisma.task.findUnique({ where: { id } });
+    const task = await this.taskModel.findByPk(id);
 
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
 
-    if (task.isLocked) {
+    if (task.is_locked) {
       throw new BadRequestException('Task is locked and cannot be updated');
     }
 
@@ -115,28 +118,28 @@ export class TasksService {
       }
     }
 
-    const updatedTask = await this.prisma.task.update({
-      where: { id },
-      data: {
-        ...dto,
-        completedAt: dto.status === TaskStatus.DONE ? new Date() : undefined,
-        isLocked: dto.status === TaskStatus.DONE ? true : undefined,
-      },
+    await task.update({
+      ticket_number: dto.ticket_number,
+      description: dto.description,
+      jira_link: dto.jira_link,
+      priority: dto.priority,
+      status: dto.status,
+      production_live_date: dto.production_live_date ? new Date(dto.production_live_date) : undefined,
+      completed_at: dto.status === TaskStatus.DONE ? new Date() : undefined,
+      is_locked: dto.status === TaskStatus.DONE ? true : undefined,
     });
 
     if (dto.status) {
-      await this.prisma.taskHistory.create({
-        data: {
-          taskId: id,
-          field: 'status',
-          oldValue: task.status,
-          newValue: dto.status,
-          changedBy: 'system',
-        },
+      await this.taskHistoryModel.create({
+        task_id: id,
+        field: 'status',
+        old_value: task.status,
+        new_value: dto.status,
+        changed_by: 'system',
       });
     }
 
-    return this.mapToTask(updatedTask);
+    return this.mapToTask(task);
   }
 
   async updateStatus(
@@ -148,74 +151,69 @@ export class TasksService {
   }
 
   async delete(id: string) {
-    const task = await this.prisma.task.findUnique({ where: { id } });
+    const task = await this.taskModel.findByPk(id);
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
-    await this.prisma.task.delete({ where: { id } });
+    await task.destroy();
   }
 
-  async addTimeLog(dto: any, userId: string) {
-    const task = await this.prisma.task.findUnique({ where: { id: dto.taskId } });
+  async addTimeLog(dto: CreateTimeLogDto & { task_id: string }, user_id: string) {
+    const task = await this.taskModel.findByPk(dto.task_id);
     if (!task) {
-      throw new NotFoundException(`Task with ID ${dto.taskId} not found`);
+      throw new NotFoundException(`Task with ID ${dto.task_id} not found`);
     }
 
-    return this.prisma.timeLog.create({
-      data: {
-        taskId: dto.taskId,
-        hours: dto.hours,
-        comment: dto.comment,
-        createdBy: userId,
-      },
+    return this.timeLogModel.create({
+      task_id: dto.task_id,
+      hours: dto.hours,
+      comment: dto.comment,
+      created_by: user_id,
     });
   }
 
-  async addComment(dto: any, userId: string) {
-    const task = await this.prisma.task.findUnique({ where: { id: dto.taskId } });
+  async addComment(dto: CreateCommentDto & { task_id: string }, user_id: string) {
+    const task = await this.taskModel.findByPk(dto.task_id);
     if (!task) {
-      throw new NotFoundException(`Task with ID ${dto.taskId} not found`);
+      throw new NotFoundException(`Task with ID ${dto.task_id} not found`);
     }
 
-    return this.prisma.comment.create({
-      data: {
-        taskId: dto.taskId,
-        userId,
-        comment: dto.comment,
-      },
-      include: { user: { select: { id: true, name: true } } },
+    return this.commentModel.create({
+      task_id: dto.task_id,
+      user_id: user_id,
+      comment: dto.comment,
     });
   }
 
-  async getTimeLogs(taskId: string) {
-    return this.prisma.timeLog.findMany({
-      where: { taskId },
-      orderBy: { createdAt: 'desc' },
+  async getTimeLogs(task_id: string) {
+    return this.timeLogModel.findAll({
+      where: { task_id },
+      order: [['created_at', 'DESC']],
     });
   }
 
-  async getComments(taskId: string) {
-    return this.prisma.comment.findMany({
-      where: { taskId },
-      orderBy: { createdAt: 'desc' },
-      include: { user: { select: { id: true, name: true } } },
+  async getComments(task_id: string) {
+    return this.commentModel.findAll({
+      where: { task_id },
+      order: [['created_at', 'DESC']],
+      include: [{ model: User, attributes: ['id', 'name'] }],
     });
   }
 
-  private mapToTask(prismaTask: any): any {
+  private mapToTask(task: Task): any {
     return {
-      id: prismaTask.id,
-      userId: prismaTask.userId,
-      ticketNumber: prismaTask.ticketNumber,
-      description: prismaTask.description,
-      jiraLink: prismaTask.jiraLink,
-      priority: prismaTask.priority,
-      status: prismaTask.status,
-      productionLiveDate: prismaTask.productionLiveDate,
-      isLocked: prismaTask.isLocked,
-      completedAt: prismaTask.completedAt,
-      createdAt: prismaTask.createdAt,
-      updatedAt: prismaTask.updatedAt,
+      id: task.id,
+      user_id: task.user_id,
+      ticket_number: task.ticket_number,
+      description: task.description,
+      jira_link: task.jira_link,
+      priority: task.priority,
+      status: task.status,
+      production_live_date: task.production_live_date,
+      is_locked: task.is_locked,
+      completed_at: task.completed_at,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
     };
   }
 }

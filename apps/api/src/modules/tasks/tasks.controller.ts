@@ -25,9 +25,9 @@ export class TasksController {
 
   @Get()
   @ApiOperation({ summary: 'Get all tasks' })
-  @ApiQuery({ name: 'userId', required: false })
-  findAll(@Query('userId') userId?: string) {
-    return this.tasksService.findAll(userId);
+  @ApiQuery({ name: 'user_id', required: false })
+  findAll(@Query('user_id') user_id?: string) {
+    return this.tasksService.findAll(user_id);
   }
 
   @Get(':id')
@@ -65,32 +65,32 @@ export class TasksController {
   @Post(':id/time-logs')
   @ApiOperation({ summary: 'Add time log to a task' })
   addTimeLog(
-    @Param('id') taskId: string,
+    @Param('id') task_id: string,
     @Body() createTimeLogDto: CreateTimeLogDto,
-    @Query('userId') userId: string,
+    @Query('user_id') user_id: string,
   ) {
-    return this.tasksService.addTimeLog({ ...createTimeLogDto, taskId }, userId);
+    return this.tasksService.addTimeLog({ ...createTimeLogDto, task_id }, user_id);
   }
 
   @Post(':id/comments')
   @ApiOperation({ summary: 'Add comment to a task' })
   addComment(
-    @Param('id') taskId: string,
+    @Param('id') task_id: string,
     @Body() createCommentDto: CreateCommentDto,
-    @Query('userId') userId: string,
+    @Query('user_id') user_id: string,
   ) {
-    return this.tasksService.addComment({ ...createCommentDto, taskId }, userId);
+    return this.tasksService.addComment({ ...createCommentDto, task_id }, user_id);
   }
 
   @Get(':id/time-logs')
   @ApiOperation({ summary: 'Get time logs for a task' })
-  getTimeLogs(@Param('id') taskId: string) {
-    return this.tasksService.getTimeLogs(taskId);
+  getTimeLogs(@Param('id') task_id: string) {
+    return this.tasksService.getTimeLogs(task_id);
   }
 
   @Get(':id/comments')
   @ApiOperation({ summary: 'Get comments for a task' })
-  getComments(@Param('id') taskId: string) {
-    return this.tasksService.getComments(taskId);
+  getComments(@Param('id') task_id: string) {
+    return this.tasksService.getComments(task_id);
   }
 }

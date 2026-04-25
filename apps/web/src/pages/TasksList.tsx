@@ -20,11 +20,11 @@ export function TasksList() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
-    ticketNumber: '',
+    ticket_number: '',
     description: '',
     priority: Priority.MEDIUM,
-    jiraLink: '',
-    userId: '',
+    jira_link: '',
+    user_id: '',
   });
   const [creating, setCreating] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,7 @@ export function TasksList() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.ticketNumber || !formData.description || !formData.userId) {
+    if (!formData.ticket_number || !formData.description || !formData.user_id) {
       alert('Please fill in all required fields');
       return;
     }
@@ -67,20 +67,20 @@ export function TasksList() {
     setCreating(true);
     try {
       const newTask = await api.tasks.create({
-        ticketNumber: formData.ticketNumber,
+        ticket_number: formData.ticket_number,
         description: formData.description,
         priority: formData.priority,
-        jiraLink: formData.jiraLink || null,
-        userId: formData.userId,
+        jira_link: formData.jira_link || null,
+        user_id: formData.user_id,
       });
       setTasks([newTask, ...tasks]);
       setShowModal(false);
       setFormData({
-        ticketNumber: '',
+        ticket_number: '',
         description: '',
         priority: Priority.MEDIUM,
-        jiraLink: '',
-        userId: '',
+        jira_link: '',
+        user_id: '',
       });
     } catch (error) {
       console.error('Failed to create task:', error);
@@ -136,7 +136,7 @@ export function TasksList() {
               ) : (
                 tasks.map((task) => (
                   <TableRow key={task.id}>
-                    <TableCell className="font-medium">{task.ticketNumber}</TableCell>
+                    <TableCell className="font-medium">{task.ticket_number}</TableCell>
                     <TableCell className="max-w-xs truncate">{task.description}</TableCell>
                     <TableCell>
                       <Badge variant="priority" value={task.priority} />
@@ -152,7 +152,7 @@ export function TasksList() {
                         >
                           <ArrowRight className="w-4 h-4" />
                         </Link>
-                        {!task.isLocked && (
+                        {!task.is_locked && (
                           <button
                             onClick={() => handleDelete(task.id)}
                             className="text-red-600 hover:text-red-800 text-sm"
@@ -196,8 +196,8 @@ export function TasksList() {
                   User *
                 </label>
                 <select
-                  value={formData.userId}
-                  onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                  value={formData.user_id}
+                  onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   required
                 >
@@ -221,8 +221,8 @@ export function TasksList() {
                 </label>
                 <input
                   type="text"
-                  value={formData.ticketNumber}
-                  onChange={(e) => setFormData({ ...formData, ticketNumber: e.target.value })}
+                  value={formData.ticket_number}
+                  onChange={(e) => setFormData({ ...formData, ticket_number: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholder="e.g., TASK-001"
                   required
@@ -266,8 +266,8 @@ export function TasksList() {
                 </label>
                 <input
                   type="url"
-                  value={formData.jiraLink}
-                  onChange={(e) => setFormData({ ...formData, jiraLink: e.target.value })}
+                  value={formData.jira_link}
+                  onChange={(e) => setFormData({ ...formData, jira_link: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   placeholder="https://jira.example.com/browse/TASK-001"
                 />
@@ -284,7 +284,7 @@ export function TasksList() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={creating || !formData.userId}
+                  disabled={creating || !formData.user_id}
                   className="flex-1"
                 >
                   {creating ? 'Creating...' : 'Create Task'}

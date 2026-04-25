@@ -1,33 +1,17 @@
 import { IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Priority, TaskStatus } from '../../../database/models';
 
-export enum Priority {
-  HIGHEST = 'HIGHEST',
-  HIGH = 'HIGH',
-  MEDIUM = 'MEDIUM',
-  LOW = 'LOW',
-  LOWEST = 'LOWEST',
-}
-
-export enum TaskStatus {
-  TODO = 'TODO',
-  IN_PROGRESS = 'IN_PROGRESS',
-  REVIEW = 'REVIEW',
-  TESTING = 'TESTING',
-  READY_TO_LIVE = 'READY_TO_LIVE',
-  ON_HOLD = 'ON_HOLD',
-  REOPEN = 'REOPEN',
-  DONE = 'DONE',
-}
+export { Priority, TaskStatus };
 
 export class CreateTaskDto {
   @ApiProperty()
   @IsString()
-  userId!: string;
+  user_id!: string;
 
   @ApiProperty({ example: 'TASK-001' })
   @IsString()
-  ticketNumber!: string;
+  ticket_number!: string;
 
   @ApiProperty({ example: 'Implement login feature' })
   @IsString()
@@ -36,7 +20,7 @@ export class CreateTaskDto {
   @ApiPropertyOptional({ example: 'https://jira.example.com/browse/TASK-001' })
   @IsOptional()
   @IsString()
-  jiraLink?: string;
+  jira_link?: string;
 
   @ApiProperty({ enum: Priority, example: Priority.HIGH })
   @IsEnum(Priority)
@@ -45,14 +29,14 @@ export class CreateTaskDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  productionLiveDate?: string;
+  production_live_date?: string;
 }
 
 export class UpdateTaskDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  ticketNumber?: string;
+  ticket_number?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -62,7 +46,7 @@ export class UpdateTaskDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  jiraLink?: string;
+  jira_link?: string;
 
   @ApiPropertyOptional({ enum: Priority })
   @IsOptional()
@@ -77,13 +61,13 @@ export class UpdateTaskDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  productionLiveDate?: string;
+  production_live_date?: string;
 }
 
 export class CreateTimeLogDto {
   @ApiProperty()
   @IsString()
-  taskId!: string;
+  task_id!: string;
 
   @ApiProperty({ example: 4.5 })
   @IsNumber()
@@ -98,7 +82,7 @@ export class CreateTimeLogDto {
 export class CreateCommentDto {
   @ApiProperty()
   @IsString()
-  taskId!: string;
+  task_id!: string;
 
   @ApiProperty({ example: 'This task is blocked by another issue' })
   @IsString()

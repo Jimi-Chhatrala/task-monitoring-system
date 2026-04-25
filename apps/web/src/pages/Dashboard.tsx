@@ -45,7 +45,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Total Tasks</p>
-                <p className="text-2xl font-bold">{metrics?.totalTasks || 0}</p>
+                <p className="text-2xl font-bold">{metrics?.total_tasks || 0}</p>
               </div>
               <Target className="w-8 h-8 text-primary-500" />
             </div>
@@ -57,7 +57,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Completed</p>
-                <p className="text-2xl font-bold">{metrics?.completedTasks || 0}</p>
+                <p className="text-2xl font-bold">{metrics?.completed_tasks || 0}</p>
               </div>
               <Award className="w-8 h-8 text-green-500" />
             </div>
@@ -69,7 +69,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Total Hours</p>
-                <p className="text-2xl font-bold">{metrics?.totalHours || 0}</p>
+                <p className="text-2xl font-bold">{metrics?.total_hours || 0}</p>
               </div>
               <Clock className="w-8 h-8 text-blue-500" />
             </div>
@@ -81,7 +81,7 @@ export function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-500">Total Score</p>
-                <p className="text-2xl font-bold">{metrics?.totalScore || 0}</p>
+                <p className="text-2xl font-bold">{metrics?.total_score || 0}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-500" />
             </div>
@@ -97,7 +97,7 @@ export function Dashboard() {
               <div>
                 <p className="text-sm text-gray-500">Average Productivity</p>
                 <p className="text-3xl font-bold text-primary-600">
-                  {metrics?.averageProductivity || 0}
+                  {metrics?.average_productivity || 0}
                 </p>
                 <p className="text-xs text-gray-400">score per day</p>
               </div>

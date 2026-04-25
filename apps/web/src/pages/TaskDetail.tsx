@@ -47,8 +47,8 @@ export function TaskDetail() {
     try {
       await api.tasks.addTimeLog(
         task.id,
-        { taskId: task.id, hours: parseFloat(timeLogHours), comment: timeLogComment },
-        task.userId,
+        { task_id: task.id, hours: parseFloat(timeLogHours), comment: timeLogComment },
+        task.user_id,
       );
       setTimeLogHours('');
       setTimeLogComment('');
@@ -63,8 +63,8 @@ export function TaskDetail() {
     try {
       await api.tasks.addComment(
         task.id,
-        { taskId: task.id, comment: newComment },
-        task.userId,
+        { task_id: task.id, comment: newComment },
+        task.user_id,
       );
       setNewComment('');
       alert('Comment added successfully');
@@ -110,7 +110,7 @@ export function TaskDetail() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        {task.isLocked && (
+        {task.is_locked && (
           <span className="flex items-center text-gray-500 text-sm">
             <Lock className="w-4 h-4 mr-1" />
             Locked
@@ -121,7 +121,7 @@ export function TaskDetail() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{task.ticketNumber}</h1>
+            <h1 className="text-2xl font-bold">{task.ticket_number}</h1>
             <p className="text-gray-500 text-sm mt-1">{task.description}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -133,31 +133,31 @@ export function TaskDetail() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span className="text-gray-500">Jira Link:</span>
-              <span className="ml-2">{task.jiraLink || 'N/A'}</span>
+              <span className="ml-2">{task.jira_link || 'N/A'}</span>
             </div>
             <div>
               <span className="text-gray-500">Production Live Date:</span>
               <span className="ml-2">
-                {task.productionLiveDate
-                  ? new Date(task.productionLiveDate).toLocaleDateString()
+                {task.production_live_date
+                  ? new Date(task.production_live_date).toLocaleDateString()
                   : 'N/A'}
               </span>
             </div>
             <div>
               <span className="text-gray-500">Created:</span>
-              <span className="ml-2">{new Date(task.createdAt).toLocaleDateString()}</span>
+              <span className="ml-2">{new Date(task.created_at).toLocaleDateString()}</span>
             </div>
-            {task.completedAt && (
+            {task.completed_at && (
               <div>
                 <span className="text-gray-500">Completed:</span>
-                <span className="ml-2">{new Date(task.completedAt).toLocaleDateString()}</span>
+                <span className="ml-2">{new Date(task.completed_at).toLocaleDateString()}</span>
               </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {!task.isLocked && (
+      {!task.is_locked && (
         <Card>
           <CardHeader>Update Status</CardHeader>
           <CardContent>

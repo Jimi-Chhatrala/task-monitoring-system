@@ -1,6 +1,7 @@
 import { TaskStatus, Task, MetricsSummary, MonthlyMetrics, Insight } from '../types';
 
-const API_BASE = '/api';
+const VITE_API_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE = `${VITE_API_URL}/api`;
 
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -21,8 +22,8 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
 
 export const api = {
   tasks: {
-    getAll: (userId?: string) =>
-      fetchApi<Task[]>(`/tasks${userId ? `?userId=${userId}` : ''}`),
+    getAll: (user_id?: string) =>
+      fetchApi<Task[]>(`/tasks${user_id ? `?user_id=${user_id}` : ''}`),
     getOne: (id: string) => fetchApi<Task>(`/tasks/${id}`),
     create: (data: any) =>
       fetchApi<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) }),
@@ -38,17 +39,17 @@ export const api = {
       }),
     delete: (id: string) =>
       fetchApi<void>(`/tasks/${id}`, { method: 'DELETE' }),
-    addTimeLog: (taskId: string, data: any, userId: string) =>
-      fetchApi<any>(`/tasks/${taskId}/time-logs?userId=${userId}`, {
+    addTimeLog: (task_id: string, data: any, user_id: string) =>
+      fetchApi<any>(`/tasks/${task_id}/time-logs?user_id=${user_id}`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    addComment: (taskId: string, data: any, userId: string) =>
-      fetchApi<any>(`/tasks/${taskId}/comments?userId=${userId}`, {
+    addComment: (task_id: string, data: any, user_id: string) =>
+      fetchApi<any>(`/tasks/${task_id}/comments?user_id=${user_id}`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
-    getComments: (taskId: string) => fetchApi<any[]>(`/tasks/${taskId}/comments`),
+    getComments: (task_id: string) => fetchApi<any[]>(`/tasks/${task_id}/comments`),
   },
   users: {
     getAll: () => fetchApi<any[]>('/users'),
@@ -57,17 +58,17 @@ export const api = {
       fetchApi<any>('/users', { method: 'POST', body: JSON.stringify(data) }),
   },
   metrics: {
-    getSummary: (userId?: string) =>
-      fetchApi<MetricsSummary>(`/metrics/summary${userId ? `?userId=${userId}` : ''}`),
-    getMonthly: (year: number, month: number, userId?: string) =>
+    getSummary: (user_id?: string) =>
+      fetchApi<MetricsSummary>(`/metrics/summary${user_id ? `?user_id=${user_id}` : ''}`),
+    getMonthly: (year: number, month: number, user_id?: string) =>
       fetchApi<MonthlyMetrics[]>(
-        `/metrics/monthly?year=${year}&month=${month}${userId ? `&userId=${userId}` : ''}`,
+        `/metrics/monthly?year=${year}&month=${month}${user_id ? `&user_id=${user_id}` : ''}`,
       ),
-    getYearly: (year: number, userId?: string) =>
-      fetchApi<any[]>(`/metrics/yearly?year=${year}${userId ? `&userId=${userId}` : ''}`),
+    getYearly: (year: number, user_id?: string) =>
+      fetchApi<any[]>(`/metrics/yearly?year=${year}${user_id ? `&user_id=${user_id}` : ''}`),
   },
   insights: {
-    getAll: (userId?: string) =>
-      fetchApi<Insight[]>(`/insights${userId ? `?userId=${userId}` : ''}`),
+    getAll: (user_id?: string) =>
+      fetchApi<Insight[]>(`/insights${user_id ? `?user_id=${user_id}` : ''}`),
   },
 };

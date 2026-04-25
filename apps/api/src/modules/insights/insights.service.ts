@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
+import { Task, TimeLog } from '../../database/models';
 import { TaskStatus } from '../tasks/dto/task.dto';
 
 const PRIORITY_WEIGHTS: Record<string, number> = {
@@ -17,14 +19,17 @@ function calculateGrowth(current: number, previous: number): number {
 
 @Injectable()
 export class InsightsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectModel(Task) private readonly taskModel: typeof Task,
+    @InjectModel(TimeLog) private readonly timeLogModel: typeof TimeLog,
+  ) {}
 
-  async generateInsights(userId?: string) {
+  async generateInsights(user_id?: string) {
     const currentYear = new Date().getFullYear();
     const comparison = await this.compareYears(
       currentYear,
       currentYear - 1,
-      userId,
+      user_id,
     );
 
     const insights: any[] = [];
@@ -32,7 +37,7 @@ export class InsightsService {
     insights.push(...this.analyzeProductivity(comparison));
     insights.push(...this.analyzeEfficiency(comparison));
     insights.push(...this.analyzeWorkload(comparison));
-    insights.push(...(await this.analyzePriorityDistribution(userId)));
+    insights.push(...(await this.analyzePriorityDistribution(user_id)));
 
     return insights;
   }
@@ -40,31 +45,38 @@ export class InsightsService {
   async compareYears(
     currentYear: number,
     previousYear: number,
-    userId?: string,
+    user_id?: string,
   ) {
-    const current = await this.getYearData(currentYear, userId);
-    const previous = await this.getYearData(previousYear, userId);
+    const current = await this.getYearData(currentYear, user_id);
+    const previous = await this.getYearData(previousYear, user_id);
 
     return { current, previous };
   }
 
-  private async getYearData(year: number, userId?: string) {
+  private async getYearData(year: number, user_id?: string) {
     const startDate = new Date(year - 1, 6, 1);
     const endDate = new Date(year, 6, 0, 23, 59, 59);
 
-    const where: any = {
-      completedAt: { gte: startDate, lte: endDate },
-      status: TaskStatus.DONE,
-      ...(userId && { userId }),
-    };
-
-    const tasks = await this.prisma.task.findMany({ where });
-
-    const timeLogs = await this.prisma.timeLog.findMany({
+    const tasks = await this.taskModel.findAll({
       where: {
-        createdAt: { gte: startDate, lte: endDate },
-        ...(userId && { task: { userId } }),
+        completed_at: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        status: TaskStatus.DONE,
+        ...(user_id && { user_id }),
       },
+    });
+
+    const timeLogs = await this.timeLogModel.findAll({
+      where: {
+        created_at: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        ...(user_id && { '$task.user_id$': user_id }),
+      },
+      include: [Task],
     });
 
     const score = tasks.reduce(
@@ -76,8 +88,8 @@ export class InsightsService {
 
     return {
       year,
-      tasksCompleted: tasks.length,
-      hoursLogged: hours,
+      tasks_completed: tasks.length,
+      hours_logged: hours,
       score,
       productivity: days > 0 ? Math.round((score / days) * 100) / 100 : 0,
     };
@@ -107,12 +119,12 @@ export class InsightsService {
   private analyzeEfficiency(comparison: any): any[] {
     const insights: any[] = [];
     const hourChange = calculateGrowth(
-      comparison.current.hoursLogged,
-      comparison.previous.hoursLogged,
+      comparison.current.hours_logged,
+      comparison.previous.hours_logged,
     );
     const taskChange = calculateGrowth(
-      comparison.current.tasksCompleted,
-      comparison.previous.tasksCompleted,
+      comparison.current.tasks_completed,
+      comparison.previous.tasks_completed,
     );
 
     if (hourChange > 20 && taskChange < 5) {
@@ -129,8 +141,8 @@ export class InsightsService {
   private analyzeWorkload(comparison: any): any[] {
     const insights: any[] = [];
     const change = calculateGrowth(
-      comparison.current.tasksCompleted,
-      comparison.previous.tasksCompleted,
+      comparison.current.tasks_completed,
+      comparison.previous.tasks_completed,
     );
 
     if (change > 25) {
@@ -150,13 +162,14 @@ export class InsightsService {
     return insights;
   }
 
-  private async analyzePriorityDistribution(userId?: string): Promise<any[]> {
+  private async analyzePriorityDistribution(user_id?: string): Promise<any[]> {
     const insights: any[] = [];
-    const where = userId
-      ? { userId, status: TaskStatus.DONE }
-      : { status: TaskStatus.DONE };
 
-    const tasks = await this.prisma.task.findMany({ where });
+    const tasks = await this.taskModel.findAll({
+      where: user_id
+        ? { user_id, status: TaskStatus.DONE }
+        : { status: TaskStatus.DONE },
+    });
     if (tasks.length === 0) return insights;
 
     const highPriority = tasks.filter((t) =>

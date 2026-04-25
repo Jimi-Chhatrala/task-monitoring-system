@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { InjectModel } from '@nestjs/sequelize';
+import { Op } from 'sequelize';
+import { Task, TimeLog } from '../../database/models';
 import { TaskStatus } from '../tasks/dto/task.dto';
 
 const PRIORITY_WEIGHTS: Record<string, number> = {
@@ -12,11 +14,15 @@ const PRIORITY_WEIGHTS: Record<string, number> = {
 
 @Injectable()
 export class MetricsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    @InjectModel(Task) private readonly taskModel: typeof Task,
+    @InjectModel(TimeLog) private readonly timeLogModel: typeof TimeLog,
+  ) {}
 
-  async getSummary(userId?: string) {
-    const where = userId ? { userId } : {};
-    const tasks = await this.prisma.task.findMany({ where });
+  async getSummary(user_id?: string) {
+    const tasks = await this.taskModel.findAll({
+      where: user_id ? { user_id } : {},
+    });
 
     const completedTasks = tasks.filter(
       (t) => t.status === TaskStatus.DONE,
@@ -25,8 +31,9 @@ export class MetricsService {
       (sum, t) => sum + (PRIORITY_WEIGHTS[t.priority] || 0),
       0,
     );
-    const timeLogs = await this.prisma.timeLog.findMany({
-      where: userId ? { task: { userId } } : {},
+    const timeLogs = await this.timeLogModel.findAll({
+      where: user_id ? { '$task.user_id$': user_id } : {},
+      include: [Task],
     });
     const totalHours = timeLogs.reduce(
       (sum, log) => sum + Number(log.hours),
@@ -38,35 +45,38 @@ export class MetricsService {
       : 0;
 
     return {
-      totalTasks: tasks.length,
-      completedTasks: completedTasks.length,
-      totalHours,
-      totalScore,
-      averageProductivity,
+      total_tasks: tasks.length,
+      completed_tasks: completedTasks.length,
+      total_hours: totalHours,
+      total_score: totalScore,
+      average_productivity: averageProductivity,
     };
   }
 
-  async getMonthly(year: number, month: number, userId?: string) {
+  async getMonthly(year: number, month: number, user_id?: string) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    const where: any = {
-      completedAt: {
-        gte: startDate,
-        lte: endDate,
+    const tasks = await this.taskModel.findAll({
+      where: {
+        completed_at: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        status: TaskStatus.DONE,
+        ...(user_id && { user_id }),
       },
-      ...(userId && { userId }),
-    };
-
-    const tasks = await this.prisma.task.findMany({
-      where: { ...where, status: TaskStatus.DONE },
     });
 
-    const timeLogs = await this.prisma.timeLog.findMany({
+    const timeLogs = await this.timeLogModel.findAll({
       where: {
-        createdAt: { gte: startDate, lte: endDate },
-        ...(userId && { task: { userId } }),
+        created_at: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        ...(user_id && { '$task.user_id$': user_id }),
       },
+      include: [Task],
     });
 
     const score = tasks.reduce(
@@ -79,34 +89,37 @@ export class MetricsService {
       {
         month,
         year,
-        tasksCompleted: tasks.length,
-        hoursLogged: hours,
+        tasks_completed: tasks.length,
+        hours_logged: hours,
         score,
       },
     ];
   }
 
-  async getYearly(year: number, userId?: string) {
+  async getYearly(year: number, user_id?: string) {
     const startDate = new Date(year - 1, 6, 1);
     const endDate = new Date(year, 6, 0, 23, 59, 59);
 
-    const where: any = {
-      completedAt: {
-        gte: startDate,
-        lte: endDate,
+    const tasks = await this.taskModel.findAll({
+      where: {
+        completed_at: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        status: TaskStatus.DONE,
+        ...(user_id && { user_id }),
       },
-      ...(userId && { userId }),
-    };
-
-    const tasks = await this.prisma.task.findMany({
-      where: { ...where, status: TaskStatus.DONE },
     });
 
-    const timeLogs = await this.prisma.timeLog.findMany({
+    const timeLogs = await this.timeLogModel.findAll({
       where: {
-        createdAt: { gte: startDate, lte: endDate },
-        ...(userId && { task: { userId } }),
+        created_at: {
+          [Op.gte]: startDate,
+          [Op.lte]: endDate,
+        },
+        ...(user_id && { '$task.user_id$': user_id }),
       },
+      include: [Task],
     });
 
     const score = tasks.reduce(
@@ -119,8 +132,8 @@ export class MetricsService {
     return [
       {
         year,
-        tasksCompleted: tasks.length,
-        hoursLogged: hours,
+        tasks_completed: tasks.length,
+        hours_logged: hours,
         score,
         productivity: days > 0 ? Math.round((score / days) * 100) / 100 : 0,
       },
@@ -130,28 +143,28 @@ export class MetricsService {
   async compare(
     currentYear: number,
     previousYear: number,
-    userId?: string,
+    user_id?: string,
   ) {
     const [current, previous] = await Promise.all([
-      this.getYearly(currentYear, userId),
-      this.getYearly(previousYear, userId),
+      this.getYearly(currentYear, user_id),
+      this.getYearly(previousYear, user_id),
     ]);
 
     return {
       current: current[0] || {
         year: currentYear,
-        tasksCompleted: 0,
-        hoursLogged: 0,
+        tasks_completed: 0,
+        hours_logged: 0,
         score: 0,
         productivity: 0,
-      },
-      previous: previous[0] || {
+       },
+       previous: previous[0] || {
         year: previousYear,
-        tasksCompleted: 0,
-        hoursLogged: 0,
+        tasks_completed: 0,
+        hours_logged: 0,
         score: 0,
         productivity: 0,
-      },
+       },
     };
   }
 

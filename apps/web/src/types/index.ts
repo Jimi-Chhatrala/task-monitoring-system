@@ -21,73 +21,73 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  annualTargetTasks: number;
-  annualTargetScore: number;
-  createdAt: Date;
+  annual_target_tasks: number;
+  annual_target_score: number;
+  created_at: Date;
 }
 
 export interface Task {
   id: string;
-  userId: string;
-  ticketNumber: string;
+  user_id: string;
+  ticket_number: string;
   description: string;
-  jiraLink: string | null;
+  jira_link: string | null;
   priority: Priority;
   status: TaskStatus;
-  productionLiveDate: Date | null;
-  isLocked: boolean;
-  completedAt: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  production_live_date: Date | null;
+  is_locked: boolean;
+  completed_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export interface TimeLog {
   id: string;
-  taskId: string;
+  task_id: string;
   hours: number;
   comment: string | null;
-  createdBy: string;
-  createdAt: Date;
+  created_by: string;
+  created_at: Date;
 }
 
 export interface Comment {
   id: string;
-  taskId: string;
-  userId: string;
+  task_id: string;
+  user_id: string;
   comment: string;
-  createdAt: Date;
+  created_at: Date;
 }
 
 export interface TaskHistory {
   id: string;
-  taskId: string;
+  task_id: string;
   field: string;
-  oldValue: string | null;
-  newValue: string | null;
-  changedBy: string;
-  createdAt: Date;
+  old_value: string | null;
+  new_value: string | null;
+  changed_by: string;
+  created_at: Date;
 }
 
 export interface MetricsSummary {
-  totalTasks: number;
-  completedTasks: number;
-  totalHours: number;
-  totalScore: number;
-  averageProductivity: number;
+  total_tasks: number;
+  completed_tasks: number;
+  total_hours: number;
+  total_score: number;
+  average_productivity: number;
 }
 
 export interface MonthlyMetrics {
   month: number;
   year: number;
-  tasksCompleted: number;
-  hoursLogged: number;
+  tasks_completed: number;
+  hours_logged: number;
   score: number;
 }
 
 export interface YearlyMetrics {
   year: number;
-  tasksCompleted: number;
-  hoursLogged: number;
+  tasks_completed: number;
+  hours_logged: number;
   score: number;
   productivity: number;
 }

@@ -5,14 +5,14 @@ import { UsersModule } from './modules/users/users.module';
 import { TasksModule } from './modules/tasks/tasks.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { InsightsModule } from './modules/insights/insights.module';
-import { PrismaModule } from './prisma/prisma.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    PrismaModule,
+    DatabaseModule,
     AuthModule,
     UsersModule,
     TasksModule,

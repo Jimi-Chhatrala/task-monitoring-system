@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -9,7 +10,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: process.env.FRONTEND_URL,
     credentials: true,
   });
 
@@ -20,6 +21,15 @@ async function bootstrap() {
     }),
   );
 
+  app.use((req: Request, res: Response, next: () => void) => {
+    if (req.path === '/') {
+      return res.json({ status: 'ok', message: 'Task Monitoring API', version: '1.0', docs: '/api/docs' });
+    } else if (req.path === '/health') {
+      return res.json({ status: 'ok', message: 'Task Monitoring API is running', timestamp: new Date().toISOString() });
+    }
+    next();
+  });
+
   const config = new DocumentBuilder()
     .setTitle('Task Management API')
     .setDescription('API for task management system')
@@ -29,7 +39,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.API_PORT || 3000;
+  const port = parseInt(process.env.API_PORT || '3000', 10);
   await app.listen(port);
   console.log(`API running on http://localhost:${port}`);
 }
