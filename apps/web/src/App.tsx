@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { TasksList } from './pages/TasksList';
 import { TaskDetail } from './pages/TaskDetail';
@@ -6,7 +6,7 @@ import { Layout } from './components/Layout';
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
@@ -15,7 +15,7 @@ function App() {
           <Route path="tasks/:id" element={<TaskDetail />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

@@ -7,16 +7,19 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint src/",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "@repo/types": "workspace:*",
+    "axios": "^1.6.5",
+    "gh-pages": "^6.3.0",
+    "lucide-react": "^0.312.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.21.3",
-    "axios": "^1.6.5",
-    "recharts": "^2.10.4",
-    "lucide-react": "^0.312.0"
+    "recharts": "^2.10.4"
   },
   "devDependencies": {
     "@types/react": "^18.2.48",
