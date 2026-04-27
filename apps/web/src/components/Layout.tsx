@@ -1,8 +1,11 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ListTodo } from 'lucide-react';
+import { LayoutDashboard, ListTodo, LogOut } from 'lucide-react';
+import { Button } from './ui/Button';
+import { useAuth } from '../auth/AuthContext';
 
 export function Layout() {
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -38,6 +41,16 @@ export function Layout() {
                   );
                 })}
               </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>

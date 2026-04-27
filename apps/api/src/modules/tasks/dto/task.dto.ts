@@ -5,7 +5,8 @@ import { Priority, TaskStatus } from '../../../database/models';
 export { Priority, TaskStatus };
 
 export class CreateTaskDto {
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   user_id!: string;
 

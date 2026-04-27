@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
-import { SequelizeModule } from '@nestjs/sequelize';
+import { Module, OnModuleInit } from '@nestjs/common';
+import { InjectConnection, SequelizeModule } from '@nestjs/sequelize';
 import { ConfigService } from '@nestjs/config';
+import { Sequelize } from 'sequelize-typescript';
 import { User, Task, TimeLog, Comment, TaskHistory } from './models';
 
 function getEnv(name: string): string {
@@ -9,6 +10,17 @@ function getEnv(name: string): string {
     console.error(`[Config] Missing required environment variable: ${name}`);
   }
   return value ?? '';
+}
+
+class DatabaseSchemaService implements OnModuleInit {
+  constructor(@InjectConnection() private readonly sequelize: Sequelize) {}
+
+  async onModuleInit() {
+    await this.sequelize.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_hash TEXT;
+    `);
+  }
 }
 
 @Module({
@@ -55,5 +67,6 @@ function getEnv(name: string): string {
       },
     }),
   ],
+  providers: [DatabaseSchemaService],
 })
 export class DatabaseModule {}

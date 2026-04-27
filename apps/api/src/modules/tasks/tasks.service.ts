@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Task, TimeLog, Comment, TaskHistory, User } from '../../database/models';
@@ -48,9 +49,9 @@ export class TasksService {
     @InjectModel(TaskHistory) private readonly taskHistoryModel: typeof TaskHistory,
   ) {}
 
-  async findAll(user_id?: string) {
+  async findAll(user_id: string) {
     const tasks = await this.taskModel.findAll({
-      where: user_id ? { user_id } : {},
+      where: { user_id },
       order: [['created_at', 'DESC']],
       include: [{
         model: User,
@@ -60,8 +61,9 @@ export class TasksService {
     return tasks.map(this.mapToTask);
   }
 
-  async findOne(id: string) {
-    const task = await this.taskModel.findByPk(id, {
+  async findOne(id: string, user_id: string) {
+    const task = await this.taskModel.findOne({
+      where: { id, user_id },
       include: [
         { model: User, attributes: ['id', 'name', 'email'] },
         { model: TimeLog, order: [['created_at', 'DESC']] },
@@ -77,9 +79,9 @@ export class TasksService {
     return this.mapToTask(task);
   }
 
-  async create(dto: CreateTaskDto) {
+  async create(dto: CreateTaskDto, user_id: string) {
     const task = await this.taskModel.create({
-      user_id: dto.user_id,
+      user_id,
       ticket_number: dto.ticket_number,
       description: dto.description,
       jira_link: dto.jira_link,
@@ -92,9 +94,10 @@ export class TasksService {
   async update(
     id: string,
     dto: UpdateTaskDto,
+    user_id: string,
     previousStatus?: TaskStatus,
   ) {
-    const task = await this.taskModel.findByPk(id);
+    const task = await this.getOwnedTask(id, user_id);
 
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -135,7 +138,7 @@ export class TasksService {
         field: 'status',
         old_value: task.status,
         new_value: dto.status,
-        changed_by: 'system',
+        changed_by: user_id,
       });
     }
 
@@ -146,12 +149,13 @@ export class TasksService {
     id: string,
     newStatus: TaskStatus,
     previousStatus: TaskStatus,
+    user_id: string,
   ) {
-    return this.update(id, { status: newStatus }, previousStatus);
+    return this.update(id, { status: newStatus }, user_id, previousStatus);
   }
 
-  async delete(id: string) {
-    const task = await this.taskModel.findByPk(id);
+  async delete(id: string, user_id: string) {
+    const task = await this.getOwnedTask(id, user_id);
     if (!task) {
       throw new NotFoundException(`Task with ID ${id} not found`);
     }
@@ -159,10 +163,7 @@ export class TasksService {
   }
 
   async addTimeLog(dto: CreateTimeLogDto & { task_id: string }, user_id: string) {
-    const task = await this.taskModel.findByPk(dto.task_id);
-    if (!task) {
-      throw new NotFoundException(`Task with ID ${dto.task_id} not found`);
-    }
+    await this.assertTaskOwnership(dto.task_id, user_id);
 
     return this.timeLogModel.create({
       task_id: dto.task_id,
@@ -173,10 +174,7 @@ export class TasksService {
   }
 
   async addComment(dto: CreateCommentDto & { task_id: string }, user_id: string) {
-    const task = await this.taskModel.findByPk(dto.task_id);
-    if (!task) {
-      throw new NotFoundException(`Task with ID ${dto.task_id} not found`);
-    }
+    await this.assertTaskOwnership(dto.task_id, user_id);
 
     return this.commentModel.create({
       task_id: dto.task_id,
@@ -185,14 +183,16 @@ export class TasksService {
     });
   }
 
-  async getTimeLogs(task_id: string) {
+  async getTimeLogs(task_id: string, user_id: string) {
+    await this.assertTaskOwnership(task_id, user_id);
     return this.timeLogModel.findAll({
       where: { task_id },
       order: [['created_at', 'DESC']],
     });
   }
 
-  async getComments(task_id: string) {
+  async getComments(task_id: string, user_id: string) {
+    await this.assertTaskOwnership(task_id, user_id);
     return this.commentModel.findAll({
       where: { task_id },
       order: [['created_at', 'DESC']],
@@ -215,5 +215,20 @@ export class TasksService {
       created_at: task.created_at,
       updated_at: task.updated_at,
     };
+  }
+
+  private async getOwnedTask(id: string, user_id: string) {
+    return this.taskModel.findOne({ where: { id, user_id } });
+  }
+
+  private async assertTaskOwnership(task_id: string, user_id: string) {
+    const task = await this.getOwnedTask(task_id, user_id);
+    if (!task) {
+      const taskExists = await this.taskModel.findByPk(task_id);
+      if (taskExists) {
+        throw new ForbiddenException('You do not have access to this task');
+      }
+      throw new NotFoundException(`Task with ID ${task_id} not found`);
+    }
   }
 }

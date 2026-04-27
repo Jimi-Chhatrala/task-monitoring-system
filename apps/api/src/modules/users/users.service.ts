@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { User } from '../../database/models';
+import { hashPassword } from '../auth/password.util';
+import { AuthenticatedUser } from '../auth/auth.types';
 
 @Injectable()
 export class UsersService {
@@ -10,35 +12,45 @@ export class UsersService {
     const users = await this.userModel.findAll({
       order: [['created_at', 'DESC']],
     });
-    return users.map(this.mapToUser);
+    return users.map((user) => this.toPublicUser(user));
   }
 
   async findOne(id: string) {
     const user = await this.userModel.findByPk(id);
-    return user ? this.mapToUser(user) : null;
+    return user ? this.toPublicUser(user) : null;
+  }
+
+  async findModelById(id: string) {
+    return this.userModel.findByPk(id);
   }
 
   async findByEmail(email: string) {
     const user = await this.userModel.findOne({ where: { email } });
-    return user ? this.mapToUser(user) : null;
+    return user ? this.toPublicUser(user) : null;
+  }
+
+  async findModelByEmail(email: string) {
+    return this.userModel.findOne({ where: { email } });
   }
 
   async create(data: {
     name: string;
     email: string;
+    password: string;
     annualTargetTasks?: number;
     annualTargetScore?: number;
   }) {
     const user = await this.userModel.create({
       name: data.name,
       email: data.email,
+      password_hash: hashPassword(data.password),
       annual_target_tasks: data.annualTargetTasks || 0,
       annual_target_score: data.annualTargetScore || 0,
     });
-    return this.mapToUser(user);
+    return this.toPublicUser(user);
   }
 
-  private mapToUser(user: User) {
+  toPublicUser(user: User): AuthenticatedUser {
     return {
       id: user.id,
       name: user.name,

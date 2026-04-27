@@ -20,6 +20,9 @@ export class User extends Model {
   @Column({ type: DataTypes.STRING, allowNull: false, unique: true, field: 'email' })
   declare email: string;
 
+  @Column({ type: DataTypes.TEXT, allowNull: true, field: 'password_hash' })
+  declare password_hash?: string;
+
   @Column({ type: DataTypes.INTEGER, defaultValue: 0, field: 'annual_target_tasks' })
   declare annual_target_tasks: number;
 

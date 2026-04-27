@@ -8,15 +8,8 @@ import { api } from '../api/client';
 import { Task, Priority } from '../types';
 import { Plus, ArrowRight, X } from 'lucide-react';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
 export function TasksList() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,7 +17,6 @@ export function TasksList() {
     description: '',
     priority: Priority.MEDIUM,
     jira_link: '',
-    user_id: '',
   });
   const [creating, setCreating] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -32,12 +24,8 @@ export function TasksList() {
   useEffect(() => {
     const fetchTasks = async () => {
       try {
-        const [tasksData, usersData] = await Promise.all([
-          api.tasks.getAll(),
-          api.users.getAll(),
-        ]);
+        const tasksData = await api.tasks.getAll();
         setTasks(tasksData);
-        setUsers(usersData);
       } catch (error) {
         console.error('Failed to fetch tasks:', error);
       } finally {
@@ -59,7 +47,7 @@ export function TasksList() {
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.ticket_number || !formData.description || !formData.user_id) {
+    if (!formData.ticket_number || !formData.description) {
       alert('Please fill in all required fields');
       return;
     }
@@ -71,7 +59,6 @@ export function TasksList() {
         description: formData.description,
         priority: formData.priority,
         jira_link: formData.jira_link || null,
-        user_id: formData.user_id,
       });
       setTasks([newTask, ...tasks]);
       setShowModal(false);
@@ -80,7 +67,6 @@ export function TasksList() {
         description: '',
         priority: Priority.MEDIUM,
         jira_link: '',
-        user_id: '',
       });
     } catch (error) {
       console.error('Failed to create task:', error);
@@ -193,30 +179,6 @@ export function TasksList() {
             <form onSubmit={handleCreateTask} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  User *
-                </label>
-                <select
-                  value={formData.user_id}
-                  onChange={(e) => setFormData({ ...formData, user_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                >
-                  <option value="">Select a user</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} ({user.email})
-                    </option>
-                  ))}
-                </select>
-                {users.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">
-                    No users found. Please create a user first via API.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Ticket Number *
                 </label>
                 <input
@@ -284,7 +246,7 @@ export function TasksList() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={creating || !formData.user_id}
+                  disabled={creating}
                   className="flex-1"
                 >
                   {creating ? 'Creating...' : 'Create Task'}

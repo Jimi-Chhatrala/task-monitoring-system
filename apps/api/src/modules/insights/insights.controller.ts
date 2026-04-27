@@ -1,16 +1,19 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { InsightsService } from './insights.service';
+import { AuthGuard } from '../auth/auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import { AuthenticatedUser } from '../auth/auth.types';
 
 @ApiTags('insights')
+@UseGuards(AuthGuard)
 @Controller('insights')
 export class InsightsController {
   constructor(private readonly insightsService: InsightsService) {}
 
   @Get()
   @ApiOperation({ summary: 'Generate insights based on historical data' })
-  @ApiQuery({ name: 'userId', required: false })
-  generateInsights(@Query('userId') userId?: string) {
-    return this.insightsService.generateInsights(userId);
+  generateInsights(@CurrentUser() user: AuthenticatedUser) {
+    return this.insightsService.generateInsights(user.id);
   }
 }

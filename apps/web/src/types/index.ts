@@ -26,6 +26,11 @@ export interface User {
   created_at: Date;
 }
 
+export interface AuthResponse {
+  accessToken: string;
+  user: User;
+}
+
 export interface Task {
   id: string;
   user_id: string;

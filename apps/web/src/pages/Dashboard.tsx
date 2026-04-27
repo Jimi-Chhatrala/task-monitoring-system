@@ -24,6 +24,7 @@ export function Dashboard() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, []);
 
@@ -125,7 +126,7 @@ export function Dashboard() {
                       <p className="text-sm text-gray-700">{insight.message}</p>
                       <p className="text-xs text-gray-400 capitalize">
                         {insight.type}{' '}
-                        {insight.change && `• ${insight.change > 0 ? '+' : ''}${insight.change}%`}
+                        {insight.change && `- ${insight.change > 0 ? '+' : ''}${insight.change}%`}
                       </p>
                     </div>
                   </li>

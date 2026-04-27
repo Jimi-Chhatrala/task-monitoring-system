@@ -45,11 +45,11 @@ export function TaskDetail() {
   const handleAddTimeLog = async () => {
     if (!task || !timeLogHours) return;
     try {
-      await api.tasks.addTimeLog(
-        task.id,
-        { task_id: task.id, hours: parseFloat(timeLogHours), comment: timeLogComment },
-        task.user_id,
-      );
+      await api.tasks.addTimeLog(task.id, {
+        task_id: task.id,
+        hours: parseFloat(timeLogHours),
+        comment: timeLogComment,
+      });
       setTimeLogHours('');
       setTimeLogComment('');
       alert('Time log added successfully');
@@ -61,11 +61,7 @@ export function TaskDetail() {
   const handleAddComment = async () => {
     if (!task || !newComment) return;
     try {
-      await api.tasks.addComment(
-        task.id,
-        { task_id: task.id, comment: newComment },
-        task.user_id,
-      );
+      await api.tasks.addComment(task.id, { task_id: task.id, comment: newComment });
       setNewComment('');
       alert('Comment added successfully');
     } catch (error) {
